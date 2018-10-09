@@ -1,0 +1,18 @@
+// AtlDemo.idl : IDL source for AtlDemo
+//
+
+// This file will be processed by the MIDL tool to
+// produce the type library (AtlDemo.tlb) and marshalling code.
+
+import "oaidl.idl";
+import "ocidl.idl";
+
+[
+	uuid(4D6A9B2D-CC7E-497B-A4E4-5B33EB5F60D5),
+	version(1.0),
+]
+library AtlDemoLib
+{
+	importlib("stdole2.tlb");
+};
+
