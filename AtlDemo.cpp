@@ -13,6 +13,26 @@
 #include "TimeUtility.h"
 #include "Runlog.h"
 #include "Markup.h"
+#include <list>
+#include <memory>
+using namespace std;
+using namespace std::tr1;
+struct AppInformation
+{
+	wstring strPath;
+	wstring strCmdLine;
+	UINT	nDelay;
+	bool	bStart;
+	AppInformation(wstring strInput,wstring strCmdLine, UINT nDelayInput)
+	{
+		strPath = strInput;
+		nDelay = nDelayInput;
+		this->strCmdLine = strCmdLine;
+		bStart = false;
+	}
+};
+
+typedef shared_ptr<AppInformation> AppInformationPtr;
 
 class CAppStartModule : public ATL::CAtlServiceModuleT< CAppStartModule, IDS_SERVICENAME >
 {
@@ -42,7 +62,8 @@ public :
 	HRESULT RegisterAppId(bool bService = false) throw();//ЗўЮёзЂВс  
 	shared_ptr<CRunlog> pRunlog;
 	int nDelay = -1;
-	wstring strAppPath ;
+	list<AppInformationPtr> listApp;
+	//wstring strAppPath ;
 	wstring strServiceExePath;
 	bool GetConfiguration()
 	{
@@ -63,29 +84,46 @@ public :
 		<App Path = "C:\Windows\System32\Notepad.exe" Delay="5000"/>
 		</Configuration>
 		*/
-		
-		if (xml.FindElem(L"App"))
+		pRunlog->Runlog(_T("Try to load configure.xml.\n"));
+		if (xml.FindElem(L"AppInformation"))
 		{
-			strAppPath = xml.GetAttrib(L"Path");
-			nDelay = (int)_tcstolong(xml.GetAttrib(L"Delay").c_str());
-			return true;
+			xml.IntoElem();
+			while (xml.FindElem(L"App"))
+			{
+				wstring strAppPath = xml.GetAttrib(L"Path");
+				nDelay = (int)_tcstolong(xml.GetAttrib(L"Delay").c_str());
+				if (strAppPath.length() <= 0 || nDelay < 0)
+				{
+					pRunlog->Runlog(_T("App Path or Delay is invalid.\n"), __FUNCTIONW__);
+					continue;
+				}
+				wstring strCmdLine = xml.GetAttrib(L"CommandLine");
+				listApp.push_back(make_shared<AppInformation>(strAppPath, strCmdLine,nDelay));
+			}
+			xml.OutOfElem();
+
 		}
-		else
+	
+		if (listApp.size() <= 0)
 			return false;
+		else
+			return true;
 		
 	}
-	void RunApp()
+
+	bool RunApp(wstring strAppPath, wstring strCommandLine)
 	{
-		pRunlog->Runlog(_T("%s Try to run Application %s.\n"), __FUNCTIONW__, strAppPath.c_str());
+		pRunlog->Runlog(_T("%s Try to run Application %s ,CommandLine = %s.\n"), __FUNCTIONW__, strAppPath.c_str(),strCommandLine.c_str());
 		if (!PathFileExists(strAppPath.c_str()))
 		{
 			pRunlog->Runlog(_T("%s The specified app:%s not exists.\n"), __FUNCTIONW__, strAppPath.c_str());
-			return;
+			return false;
 		}
-		DWORD dwError = Session0CreateUserProcess(strAppPath.c_str(), NULL, strServiceExePath.c_str());
+		DWORD dwError = Session0CreateUserProcess(strAppPath.c_str(), strCommandLine.c_str(), strServiceExePath.c_str());
 		if (!dwError)
 		{
 			pRunlog->Runlog(_T("%s Succeed.\n"), __FUNCTIONW__);
+			return true;
 		}
 		else
 		{
@@ -103,29 +141,42 @@ public :
 			pRunlog->Runlog(_T("%s Failed,Code:%d,Message:%s.\n"), __FUNCTIONW__, dwError, (LPCTSTR)lpMsgBuf);
 			if (lpMsgBuf != NULL)
 				LocalFree(lpMsgBuf);
+			return false;
 		}
 	}
 	void RunMessageLoop() throw()
 	{
+// 		bool bDebug = true;
+// 		while (bDebug)
+// 		{
+// 			Sleep(100);
+// 
+// 		}
+		pRunlog->Runlog(_T("%s %d.\n"), __FUNCTIONW__, __LINE__);
 		MSG msg;
 		if (!GetConfiguration())
 		{
-			pRunlog->Runlog(_T("%s Failed in Read configuration.\n"), __FUNCTIONW__);
+			pRunlog->Runlog(_T("%s Failed in Reading configuration.\n"), __FUNCTIONW__);
 			return;
 		}
-		
+		pRunlog->Runlog(_T("%s Load configure.xml succeed apps = %d.\n"), __FUNCTIONW__, __LINE__,listApp.size());
 		double dfT1 = GetExactTime();
-		double dfDelay = nDelay / 1000;
-		do 
-		{
-			if (TimeSpanEx(dfT1) >= dfDelay)
-			{
-				RunApp();
-				break;
-			}
-			Sleep(100);
-		} while (true);
 	
+		auto itloop = listApp.begin();
+		while (itloop != listApp.end())
+		{
+			double dfDelay = (*itloop)->nDelay / 1000;
+			if (TimeSpanEx(dfT1) >= dfDelay && !(*itloop)->bStart)
+			{
+				pRunlog->Runlog(_T("%s dfDelay = %.3f.\n"), __FUNCTIONW__, dfDelay);
+				pRunlog->Runlog(_T("%s Try to run app:%s.\n"), __FUNCTIONW__, (*itloop)->strPath.c_str());
+				if (RunApp((*itloop)->strPath, (*itloop)->strCmdLine))
+					(*itloop)->bStart = true;
+				itloop++;
+			}
+			
+		}
+		
 		while (GetMessage(&msg, 0, 0, 0) > 0)
 		{
 			
@@ -234,7 +285,7 @@ public :
 					pRunlog->Runlog(_T("CreateProcessAsUser Failed ,Errorcode = %d."), dwRet);
 					__leave;  
 				}
-				_TraceMsg(_T("LaunchWin7SessionProcess Suceed."));
+				//_TraceMsg(_T("LaunchWin7SessionProcess Suceed."));
 			}
 			__finally
 			{				

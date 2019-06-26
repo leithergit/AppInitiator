@@ -4,7 +4,7 @@
 
 
  /* File created by MIDL compiler version 8.00.0603 */
-/* at Tue Oct 09 15:21:25 2018
+/* at Wed Jan 16 14:00:49 2019
  */
 /* Compiler settings for AtlDemo.idl:
     Oicf, W1, Zp8, env=Win32 (32b run), target_arch=X86 8.00.0603 

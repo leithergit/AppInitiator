@@ -1,2 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<App Path = "C:\Windows\System32\Notepad.exe" Delay="5000"/>
+<AppInformation>
+	<App Path = "C:\Windows\System32\Notepad.exe"  CommandLine="Text1" Delay="5000"/>
+	<App Path = "C:\Program Files\Notepad++\Notepad++.exe" CommandLine="Text2" Delay="5000"/>
+</AppInformation>
