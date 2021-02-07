@@ -49,7 +49,7 @@ public :
 		// 以及适当的非 null 安全说明符。  
 
 		//return S_OK;  
-		return CoInitializeSecurity(NULL,-1,NULL,NULL,  
+		 return CoInitializeSecurity(NULL,-1,NULL,NULL,  
 			RPC_C_AUTHN_LEVEL_NONE,  
 			RPC_C_IMP_LEVEL_IDENTIFY,  
 			NULL,EOAC_NONE,NULL);//创建安全说明符 
@@ -146,12 +146,11 @@ public :
 	}
 	void RunMessageLoop() throw()
 	{
-// 		bool bDebug = true;
-// 		while (bDebug)
-// 		{
-// 			Sleep(100);
-// 
-// 		}
+		bool bDebug = true;
+		while (bDebug)
+		{
+			Sleep(100);
+		}
 		pRunlog->Runlog(_T("%s %d.\n"), __FUNCTIONW__, __LINE__);
 		MSG msg;
 		if (!GetConfiguration())
@@ -319,6 +318,11 @@ extern "C" int WINAPI _tWinMain(HINSTANCE /*hInstance*/, HINSTANCE /*hPrevInstan
 								LPTSTR /*lpCmdLine*/, int nShowCmd)
 {
 	_AtlModule.pRunlog = make_shared<CRunlog>(_T("AppInitiator"));
+	bool bDebug = true;
+	while (bDebug)
+	{
+		Sleep(100);
+	}
 	return _AtlModule.WinMain(nShowCmd);
 }
 
